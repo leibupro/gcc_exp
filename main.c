@@ -1,6 +1,35 @@
+/* ############################################################
+
+
+    File:          main.c
+
+
+    Purpose:       parallel implementation
+                   of a specific form of
+                   the bucket sort algorithm.
+    
+
+    Remarks:       - linking requires the
+                     pthread library
+                     -lpthread
+
+                   - linking requires the
+                     realtime library to
+                     perform time measurement
+                     -lrt 
+    
+
+    Author:        P. Leibundgut <leiu@zhaw.ch>
+                                 <pl@vqe.ch>
+
+
+    Date:          05/2016
+
+
+   ############################################################ */
+
 #include <stdlib.h>
 #include <stdio.h>
-
 #include <stdint.h>
 #include <time.h>
 #include <assert.h>
@@ -8,9 +37,11 @@
 
 #include "util.h"
 
+
 #define NUMBER_AMOUNT      ( 1024L * 1024L * 1024L * 1L )
 #define NUMBER_UPPER_BOUND ( 1024L * 64L )
 #define MAX_THREADS        64
+
 
 typedef struct
 {
@@ -22,6 +53,7 @@ typedef struct
 
 } thread_container_t;
 
+
 static uint8_t no_threads        = 0;
 static thread_container_t threads[ MAX_THREADS ];
 
@@ -29,6 +61,7 @@ static const uint64_t no_numbers = NUMBER_AMOUNT;
 static uint16_t* numbers         = NULL;
 
 static const uint32_t no_buckets = NUMBER_UPPER_BOUND;
+
 
 /* module local function prototypes */
 static void  check_no_threads( void );
@@ -41,7 +74,6 @@ static void  release_playground( void );
 static void* bucketize( void* arg ); /* thread function */
 static void  sort( void );
 static void  verify_data( void );
-
 
 
 static void check_no_threads( void )

@@ -1,3 +1,41 @@
+#  ############################################################
+#
+#
+#   File:          Makefile
+#
+#
+#   Purpose:       Play around with the GCC
+#
+#                  This makefile generates
+#                  two binaries:
+#
+#                  - One without optimization
+#                    and debugging symbols
+#
+#                  - One with massive
+#                    optimizations which
+#                    the GCC provides us.
+#
+#                  Further on the makefile
+#                  generates readable 
+#                  assembler code in a very
+#                  verbose manner for both
+#                  optimized and debugging
+#                  compiled sources.
+#    
+#
+#   Remarks:       -
+# 
+#
+#   Author:        P. Leibundgut <leiu@zhaw.ch>
+#                                <pl@vqe.ch>
+#
+#
+#   Date:          05/2016
+#
+#
+#  ############################################################
+
 # Compiler
 CC  = gcc
 
