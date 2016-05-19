@@ -1,23 +1,57 @@
 #include <stdlib.h>
 #include <stdio.h>
+
+#ifdef SORT
+
 #include <stdint.h>
 #include <time.h>
 #include <assert.h>
+#include <pthread.h>
 
+#include "util.h"
 
 #define NUMBER_AMOUNT      ( 1024L * 1024L * 1024L * 1L )
 #define NUMBER_UPPER_BOUND ( 1024L * 64L )
-#define SECOND_IN_NANOS    ( 1000L * 1000L * 1000L )
+#define MAX_THREADS        64
 
-
-static uint16_t* numbers = NULL;
-static uint32_t* buckets = NULL;
-
-
-#ifdef SPLASH_SINGLE
-static void splash_single( void )
+typedef struct
 {
-	fprintf( stdout,  
+  uint16_t  tid;
+  pthread_t thread;
+  uint16_t* start_addr;
+  uint16_t* end_addr;
+  uint32_t* buckets;
+
+} thread_container_t;
+
+static uint8_t no_threads        = 0;
+static thread_container_t threads[ MAX_THREADS ];
+
+static const uint64_t no_numbers = NUMBER_AMOUNT;
+static uint16_t* numbers         = NULL;
+
+static const uint32_t no_buckets = NUMBER_UPPER_BOUND;
+
+/* module local function prototypes */
+static void fail_whale( FILE* out );
+static void check_no_threads( void );
+static void init_threads( void );
+static void setup_threads( int argc, char** argv );
+static void partition_tasks( void );
+static void check_alloc( void* ptr );
+static void init_playground( void );
+static void release_playground( void );
+/* thread function */
+static void* sort_part( void* arg );
+static void sort( void );
+static void verify_data( void );
+
+#endif
+
+
+static void fail_whale( FILE* out )
+{
+  fprintf( out,  
            "\n\n"
            "          ... oh, look, it's the ...\n\n\n"
            
@@ -32,34 +66,91 @@ static void splash_single( void )
            "\n\n"
          );
 }
-#endif
-
-
-#ifdef SPLASH_MULTI
-static void splash_multi( void )
-{
-	fprintf( stdout, "\n\n" );
-  fprintf( stdout, "          ... oh, look, it's the ...\n\n\n" );
-           
-
-  fprintf( stdout, "           ▄██████████████▄▐█▄▄▄▄█▌\n" );
-  fprintf( stdout, "           ██████▌▄▌▄▐▐▌███▌▀▀██▀▀\n" );
-  fprintf( stdout, "           ████▄█▌▄▌▄▐▐▌▀███▄▄█▌\n" );
-  fprintf( stdout, "           ▄▄▄▄▄██████████████▀\n\n\n" );
-           
-           
-  fprintf( stdout, "          ...::: FAIL WHALE! :::...\n" );
-  fprintf( stdout, "\n\n" );
-}
-#endif
 
 
 #ifdef SORT
+
+static void check_no_threads( void )
+{
+  if( no_threads <= 0 )
+  {
+    fail_whale( stderr );
+    fprintf( stderr, "wrong number of threads. exiting ...\n" );
+    exit( EXIT_FAILURE );
+  }
+}
+
+
+static void init_threads( void )
+{
+  uint8_t i;
+  for( i = 0; i < no_threads; i++ )
+  {
+    threads[ i ].tid        = i;
+    threads[ i ].start_addr = NULL;
+    threads[ i ].end_addr   = NULL;
+    threads[ i ].buckets    = NULL;
+  }
+}
+
+
+static void setup_threads( int argc, char** argv )
+{
+  if( argc == 2 )
+  {
+    no_threads = ( uint8_t )try_strtol( *( argv + 1 ) );
+    if( no_threads > MAX_THREADS || no_threads < 1 )
+    {
+      fail_whale( stderr );
+      fprintf( stderr, " specify a valid number of threads.\n"
+                       "    range: [1, %d]\n\n",
+                       MAX_THREADS );
+      exit( EXIT_FAILURE );
+    }
+  }
+  else
+  {
+    fail_whale( stderr );
+    fprintf( stderr, " specify number of threads. range: [1, %d]\n\n",
+                     MAX_THREADS );
+    exit( EXIT_FAILURE );
+  }
+  init_threads();
+}
+
+
+static void partition_tasks( void )
+{
+  uint64_t part_size = 0;
+  uint64_t remainder = 0;
+  uint8_t  i;
+ 
+  check_no_threads(); 
+
+  part_size = no_numbers / no_threads;
+  remainder = no_numbers % no_threads;
+
+  check_alloc( ( void* )numbers );
+  
+  for( i = 0; i < no_threads; i++ )
+  {
+    threads[ i ].start_addr = ( uint16_t* )( numbers + i * part_size );
+    threads[ i ].end_addr = 
+      ( uint16_t* )( numbers + i * part_size + part_size );
+  }
+
+  if( remainder > 0 )
+  {
+    threads[ no_threads - 1 ].end_addr += remainder; 
+  }
+}
+
 
 static void check_alloc( void* ptr )
 {
   if( ptr == NULL )
   {
+    fail_whale( stderr );
     fprintf( stderr, "alloc failed, exiting now ...\n" );
     exit( EXIT_FAILURE );
   }
@@ -68,18 +159,18 @@ static void check_alloc( void* ptr )
 
 static void init_playground( void )
 {
-  uint32_t i;
+  uint64_t i;
 
   fprintf( stdout, "generating random numbers ...\n" );
 
-  numbers = ( uint16_t* )malloc( NUMBER_AMOUNT * sizeof( uint16_t ) );
+  numbers = ( uint16_t* )malloc( no_numbers * sizeof( uint16_t ) );
   check_alloc( ( void* )numbers );
 
   srand( time( NULL ) );
 
-  for( i = 0; i < NUMBER_AMOUNT; i++ )
+  for( i = 0; i < no_numbers; i++ )
   {
-    *( numbers + i ) = ( uint16_t )( rand() % NUMBER_UPPER_BOUND );
+    *( numbers + i ) = ( uint16_t )( rand() % no_buckets );
   }
   
   fprintf( stdout, "finished generating random numbers ...\n" );
@@ -88,37 +179,95 @@ static void init_playground( void )
 
 static void release_playground( void )
 {
+  uint8_t i;
+
+  for( i = 0; i < no_threads; i++ )
+  {
+    free( ( void* )threads[ i ].buckets );
+    threads[ i ].buckets = NULL;
+  }
+
   free( ( void* )numbers );
-  free( ( void* )buckets );
   numbers = NULL;
-  buckets = NULL;
+}
+
+
+/* this is our thread function ... */
+static void* sort_part( void* arg )
+{
+  uint8_t   tid = *( ( uint8_t* )arg );
+  uint16_t* start_addr = threads[ tid ].start_addr;
+  uint16_t* end_addr = threads[ tid ].end_addr;
+  uint32_t* buckets = NULL;
+  uint16_t* p = NULL;
+
+  /* calloc sets the memory region to zero as well ... */
+  buckets = ( uint32_t* )calloc( no_buckets, sizeof( uint32_t ) );
+  check_alloc( ( void* )buckets );
+  threads[ tid ].buckets = buckets;
+  
+  
+  for( p = start_addr; p < end_addr; p++ )
+  {
+    ( *( buckets + ( *p ) ) )++;
+  }
+  pthread_exit( NULL );
 }
 
 
 static void sort( void )
 {
   uint32_t i, j, k, pos;
+  uint32_t* buckets_sumup = NULL;
   
-  /* calloc sets the memory region to zero as well ... */
-  buckets = ( uint32_t* )calloc( NUMBER_UPPER_BOUND, sizeof( uint32_t ) );
-  check_alloc( ( void* )buckets );
-  check_alloc( ( void* )numbers );
-  
-  for( i = 0; i < NUMBER_AMOUNT; i++ )
+  check_no_threads();
+  partition_tasks();
+
+  for( i = 0; i < no_threads; i++ )
   {
-    ( *( buckets + ( *( numbers + i ) ) ) )++;
+    if( pthread_create( &threads[ i ].thread, 
+                        NULL, 
+                        sort_part,
+                        ( void* )&( threads[ i ].tid ) ) 
+        != 0 )
+    {
+      fail_whale( stderr );
+      fprintf( stderr, "failed to create child thread. exiting ...\n" );
+      exit( EXIT_FAILURE );
+    }
+  }
+
+  for( i = 0; i < no_threads; i++ )
+  {
+    pthread_join( threads[ i ].thread, NULL );
+  }
+  
+
+  /* calloc sets the memory region to zero as well ... */
+  buckets_sumup = ( uint32_t* )calloc( no_buckets, sizeof( uint32_t ) );
+  check_alloc( ( void* )buckets_sumup );
+
+  for( i = 0; i < no_buckets; i++ )
+  {
+    for( j = 0; j < no_threads; j++ )
+    {
+      *( buckets_sumup + i ) += *( threads[ j ].buckets + i );
+    }
   }
 
   pos = 0; 
 
-  for( j = 0; j < NUMBER_UPPER_BOUND; j++ )
+  for( j = 0; j < no_buckets; j++ )
   {
-    for( k = 0; k < *( buckets + j ); k++ )
+    for( k = 0; k < *( buckets_sumup + j ); k++ )
     {
       *( numbers + pos ) = j;
       pos++;
     }
   }
+
+  free( ( void* )buckets_sumup );
+  buckets_sumup = NULL;
 }
 
 
@@ -134,19 +283,6 @@ static void verify_data( void )
   }
 }
 
-
-static void timespec_sub( struct timespec* a, struct timespec* b, struct timespec* res )
-{
-	res->tv_sec = a->tv_sec - b->tv_sec;
-	res->tv_nsec = a->tv_nsec - b->tv_nsec;
-
-	if( res->tv_nsec < 0 )
-	{
-		--( res->tv_sec );
-		res->tv_nsec += SECOND_IN_NANOS;
-	}
-}
-
 #endif
 
 
@@ -156,17 +292,8 @@ int main( int argc, char** argv )
   struct timespec tstart;
   struct timespec tend;
   struct timespec tdur;
-  #endif
-
-  #ifdef SPLASH_SINGLE
-  splash_single();
-  #endif
   
-  #ifdef SPLASH_MULTI
-  splash_multi();
-  #endif
-  
-  #ifdef SORT
+  setup_threads( argc, argv );
   init_playground();
   clock_gettime( CLOCK_MONOTONIC, &tstart );
   sort();
