@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef SORT
-
 #include <stdint.h>
 #include <time.h>
 #include <assert.h>
@@ -33,42 +31,18 @@ static uint16_t* numbers         = NULL;
 static const uint32_t no_buckets = NUMBER_UPPER_BOUND;
 
 /* module local function prototypes */
-static void fail_whale( FILE* out );
-static void check_no_threads( void );
-static void init_threads( void );
-static void setup_threads( int argc, char** argv );
-static void partition_tasks( void );
-static void check_alloc( void* ptr );
-static void init_playground( void );
-static void release_playground( void );
-/* thread function */
-static void* sort_part( void* arg );
-static void sort( void );
-static void verify_data( void );
-
-#endif
+static void  check_no_threads( void );
+static void  init_threads( void );
+static void  setup_threads( int argc, char** argv );
+static void  partition_tasks( void );
+static void  check_alloc( void* ptr );
+static void  init_playground( void );
+static void  release_playground( void );
+static void* bucketize( void* arg ); /* thread function */
+static void  sort( void );
+static void  verify_data( void );
 
 
-static void fail_whale( FILE* out )
-{
-  fprintf( out,  
-           "\n\n"
-           "          ... oh, look, it's the ...\n\n\n"
-           
-
-           "           ▄██████████████▄▐█▄▄▄▄█▌\n"
-           "           ██████▌▄▌▄▐▐▌███▌▀▀██▀▀\n"
-           "           ████▄█▌▄▌▄▐▐▌▀███▄▄█▌\n"
-           "           ▄▄▄▄▄██████████████▀\n\n\n"
-           
-           
-           "          ...::: FAIL WHALE! :::...\n"
-           "\n\n"
-         );
-}
-
-
-#ifdef SORT
 
 static void check_no_threads( void )
 {
@@ -193,7 +167,7 @@ static void release_playground( void )
 
 
 /* this is our thread function ... */
-static void* sort_part( void* arg )
+static void* bucketize( void* arg )
 {
   uint8_t   tid = *( ( uint8_t* )arg );
   uint16_t* start_addr = threads[ tid ].start_addr;
@@ -227,7 +201,7 @@ static void sort( void )
   {
     if( pthread_create( &threads[ i ].thread, 
                         NULL, 
-                        sort_part,
+                        bucketize,
                         ( void* )&( threads[ i ].tid ) ) 
         != 0 )
     {
@@ -242,17 +216,25 @@ static void sort( void )
     pthread_join( threads[ i ].thread, NULL );
   }
   
-
-  /* calloc sets the memory region to zero as well ... */
-  buckets_sumup = ( uint32_t* )calloc( no_buckets, sizeof( uint32_t ) );
-  check_alloc( ( void* )buckets_sumup );
-
-  for( i = 0; i < no_buckets; i++ )
+  /* we have to sum up all buckets from all threads,
+   * if we have more than one thread */
+  if( no_threads > 1 )
   {
-    for( j = 0; j < no_threads; j++ )
+    /* calloc sets the memory region to zero as well ... */
+    buckets_sumup = ( uint32_t* )calloc( no_buckets, sizeof( uint32_t ) );
+    check_alloc( ( void* )buckets_sumup );
+
+    for( i = 0; i < no_buckets; i++ )
     {
-      *( buckets_sumup + i ) += *( threads[ j ].buckets + i );
+      for( j = 0; j < no_threads; j++ )
+      {
+        *( buckets_sumup + i ) += *( threads[ j ].buckets + i );
+      }
     }
+  }
+  else if( no_threads == 1 )
+  {
+    buckets_sumup = threads[ 0 ].buckets;
   }
 
   pos = 0; 
@@ -266,8 +248,11 @@ static void sort( void )
     }
   }
 
-  free( ( void* )buckets_sumup );
-  buckets_sumup = NULL;
+  if( no_threads > 1 )
+  {
+    free( ( void* )buckets_sumup );
+    buckets_sumup = NULL;
+  }
 }
 
 
@@ -283,12 +268,9 @@ static void verify_data( void )
   }
 }
 
-#endif
-
 
 int main( int argc, char** argv )
 {
-  #ifdef SORT
   struct timespec tstart;
   struct timespec tend;
   struct timespec tdur;
@@ -304,7 +286,7 @@ int main( int argc, char** argv )
                    tdur.tv_nsec / ( 1000 * 1000 ) );
   verify_data();
   release_playground();
-  #endif
   
   return EXIT_SUCCESS;
 }
+

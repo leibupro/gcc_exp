@@ -32,6 +32,25 @@
 #include "util.h"
 
 
+void fail_whale( FILE* out )
+{
+  fprintf( out,  
+           "\n\n"
+           "          ... oh, look, it's the ...\n\n\n"
+           
+
+           "           ▄██████████████▄▐█▄▄▄▄█▌\n"
+           "           ██████▌▄▌▄▐▐▌███▌▀▀██▀▀\n"
+           "           ████▄█▌▄▌▄▐▐▌▀███▄▄█▌\n"
+           "           ▄▄▄▄▄██████████████▀\n\n\n"
+           
+           
+           "          ...::: FAIL WHALE! :::...\n"
+           "\n\n"
+         );
+}
+
+
 long try_strtol( char* str )
 {
   long val;

@@ -40,6 +40,7 @@
 #define SECOND_IN_NANOS ( 1000L * 1000L * 1000L )
 
 /* public function prototypes */
+void fail_whale( FILE* out );
 long try_strtol( char* str );
 void timespec_sub( struct timespec* a, struct timespec* b, struct timespec* res );
 

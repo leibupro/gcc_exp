@@ -31,5 +31,10 @@
 # Debug files
 *.dSYM/
 
-# Binary
-main
+# Binaries
+bindbg
+binopt
+
+# Assembler files
+*.s
+
