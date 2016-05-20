@@ -38,7 +38,7 @@
 #include "util.h"
 
 
-#define NUMBER_AMOUNT      ( 1024L * 1024L * 1024L * 4L )
+#define NUMBER_AMOUNT      ( 1024L * 1024L * 1024L * 2L )
 #define NUMBER_UPPER_BOUND ( 1024L * 64L )
 #define MAX_THREADS        64
 
@@ -223,7 +223,8 @@ static void* bucketize( void* arg )
 
 static void sort( void )
 {
-  uint32_t i, j, k, pos;
+  uint32_t i, j, k;
+  uint64_t pos;
   uint32_t* buckets_sumup = NULL;
   
   check_no_threads();

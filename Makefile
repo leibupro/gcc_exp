@@ -65,38 +65,48 @@ SRC += util.c
 OBJ  = main.o
 OBJ += util.o
 
+ASMDBG  = main_dbg.s
+ASMDBG += util_dbg.s
+
+ASMOPT  = main_opt.s
+ASMOPT += util_opt.s
+
+BINDBG  = bindbg
+
+BINOPT  = binopt
 
 # phony targets
-.PHONY: all clean asmdbg asmopt
+.PHONY: all clean
 
 
 # all targets
-all: bindbg binopt asmdbg asmopt
+all: $(BINDBG) $(BINOPT) $(ASMDBG) $(ASMOPT)
 
 
-bindbg: $(HDR) $(SRC)
+$(BINDBG): $(HDR) $(SRC)
 	$(CC) $(CFDBG) $(CFARCH) -c $(SRC)
 	$(LD) -o $@ $(OBJ) $(LB)
 	rm $(OBJ)	
 
 
-binopt: $(HDR) $(SRC)
+$(BINOPT): $(HDR) $(SRC)
 	$(CC) $(CFOPT) $(CFARCH) -c $(SRC)
 	$(LD) -o $@ $(OBJ) $(LB)
 	rm $(OBJ)
 
 
-asmdbg: $(HDR) $(SRC)
+$(ASMDBG): $(HDR) $(SRC)
 	$(CC) $(CFDBG) $(CFARCH) $(CFASM) -S $(SRC)
 	rename "s/\.s$//_dbg\.s$//" *.s
 
 
-asmopt: $(HDR) $(SRC)
+$(ASMOPT): $(HDR) $(SRC)
 	$(CC) $(CFOPT) $(CFARCH) $(CFASM) -S $(SRC)
-	rename 's/\.s$//_opt\.s/' *.s
-	rename 's/\_dbg_opt/_dbg/' *.s
+	rename "s/\.s$//_opt\.s/" *.s
+	rename "s/\_dbg_opt/_dbg/" *.s
 
 
 # clean up
 clean:
-	rm bindbg binopt *.s
+	rm $(BINDBG) $(BINOPT) $(ASMDBG) $(ASMOPT)
+
