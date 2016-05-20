@@ -88,13 +88,13 @@ binopt: $(HDR) $(SRC)
 
 asmdbg: $(HDR) $(SRC)
 	$(CC) $(CFDBG) $(CFARCH) $(CFASM) -S $(SRC)
-	rename .s _dbg.s *.s
+	rename "s/\.s$//_dbg\.s$//" *.s
 
 
 asmopt: $(HDR) $(SRC)
 	$(CC) $(CFOPT) $(CFARCH) $(CFASM) -S $(SRC)
-	rename .s _opt.s *.s
-	rename _dbg_opt _dbg *.s
+	rename 's/\.s$//_opt\.s/' *.s
+	rename 's/\_dbg_opt/_dbg/' *.s
 
 
 # clean up
