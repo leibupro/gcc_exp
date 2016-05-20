@@ -38,7 +38,7 @@
 #include "util.h"
 
 
-#define NUMBER_AMOUNT      ( 1024L * 1024L * 1024L * 1L )
+#define NUMBER_AMOUNT      ( 1024L * 1024L * 1024L * 4L )
 #define NUMBER_UPPER_BOUND ( 1024L * 64L )
 #define MAX_THREADS        64
 
@@ -290,11 +290,11 @@ static void sort( void )
 
 static void verify_data( void )
 {
-  uint32_t i;
+  uint64_t i;
   
   fprintf( stdout, "... verifying data ...\n" );
   
-  for( i = 1; i < NUMBER_AMOUNT; i++ )
+  for( i = 1; i < no_numbers; i++ )
   {
     assert( *( numbers + ( i - 1 ) ) <= *( numbers + i ) );
   }
