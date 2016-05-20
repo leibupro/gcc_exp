@@ -57,23 +57,26 @@ LF  =
 LB  = -lrt -lpthread
 
 # Files
-HDR  = util.h
+MAIN = main
+UTIL = util
 
-SRC  = main.c
-SRC += util.c
+HDR  = $(UTIL).h
 
-OBJ  = main.o
-OBJ += util.o
+SRC  = $(MAIN).c
+SRC += $(UTIL).c
 
-ASMDBG  = main_dbg.s
-ASMDBG += util_dbg.s
+OBJ  = $(MAIN).o
+OBJ += $(UTIL).o
 
-ASMOPT  = main_opt.s
-ASMOPT += util_opt.s
+ASMDBG  = $(MAIN)_dbg.s
+ASMDBG += $(UTIL)_dbg.s
 
-BINDBG  = bindbg
+ASMOPT  = $(MAIN)_opt.s
+ASMOPT += $(UTIL)_opt.s
 
-BINOPT  = binopt
+BINDBG  = bin_dbg
+
+BINOPT  = bin_opt
 
 # phony targets
 .PHONY: all clean
@@ -97,13 +100,14 @@ $(BINOPT): $(HDR) $(SRC)
 
 $(ASMDBG): $(HDR) $(SRC)
 	$(CC) $(CFDBG) $(CFARCH) $(CFASM) -S $(SRC)
-	rename "s/\.s$//_dbg\.s$//" *.s
+	mv $(MAIN).s $(word 1,$(ASMDBG))
+	mv $(UTIL).s $(word 2,$(ASMDBG))
 
 
 $(ASMOPT): $(HDR) $(SRC)
 	$(CC) $(CFOPT) $(CFARCH) $(CFASM) -S $(SRC)
-	rename "s/\.s$//_opt\.s/" *.s
-	rename "s/\_dbg_opt/_dbg/" *.s
+	mv $(MAIN).s $(word 1,$(ASMOPT))
+	mv $(UTIL).s $(word 2,$(ASMOPT))
 
 
 # clean up

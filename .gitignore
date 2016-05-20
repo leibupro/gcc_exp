@@ -32,8 +32,8 @@
 *.dSYM/
 
 # Binaries
-bindbg
-binopt
+bin_dbg
+bin_opt
 
 # Assembler files
 *.s
