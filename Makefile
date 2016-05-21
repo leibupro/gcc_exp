@@ -39,6 +39,7 @@
 # Directories
 INCDIR = ./include
 SRCDIR = ./src
+OBJDIR = ./obj
 BINDIR = ./bin
 ASMDIR = ./asm
 
@@ -52,10 +53,12 @@ LD  = gcc
 
 
 # Compiler flags
-CFDBG  = -std=gnu99 -Wall -ggdb3 -O0
-CFOPT  = -std=gnu99 -funroll-loops -O3
+CF     = -std=gnu99
 
 CFARCH = -march=native
+
+CFDBG  = -Wall -ggdb3 -O0
+CFOPT  = -funroll-loops -O3
 
 CFASM  = -fverbose-asm -masm=intel
 
@@ -71,66 +74,77 @@ LB  = -lrt -lpthread
 
 
 # Files
-MAIN = main
-UTIL = util
+HDR  = $(INCDIR)/util.h
 
-HDR  = $(INCDIR)/$(UTIL).h
+SRC  = $(SRCDIR)/main.c
+SRC += $(SRCDIR)/util.c
 
-SRC  = $(SRCDIR)/$(MAIN).c
-SRC += $(SRCDIR)/$(UTIL).c
+OBJDBG = $(subst $(SRCDIR),$(OBJDIR),$(SRC:.c=_dbg.o))
+OBJOPT = $(subst $(SRCDIR),$(OBJDIR),$(SRC:.c=_opt.o))
 
-OBJ  = $(MAIN).o
-OBJ += $(UTIL).o
+ASMDBG = $(subst $(SRCDIR),$(ASMDIR),$(SRC:.c=_dbg.s))
+ASMOPT = $(subst $(SRCDIR),$(ASMDIR),$(SRC:.c=_opt.s))
 
-ASMDBG  = $(ASMDIR)/$(MAIN)_dbg.s
-ASMDBG += $(ASMDIR)/$(UTIL)_dbg.s
+BINDBG = $(BINDIR)/bin_dbg
+BINOPT = $(BINDIR)/bin_opt
 
-ASMOPT  = $(ASMDIR)/$(MAIN)_opt.s
-ASMOPT += $(ASMDIR)/$(UTIL)_opt.s
 
-BINDBG  = $(BINDIR)/bin_dbg
-
-BINOPT  = $(BINDIR)/bin_opt
+# vpath variable for pattern rules to look into the
+# directories specified in vpath as well when 
+# searching the dependency files.
+VPATH = $(SRCDIR)
 
 
 # phony targets
 .PHONY: all clean
 
 
-# all targets
-all: $(BINDBG) $(BINOPT) $(ASMDBG) $(ASMOPT)
+# all files/directories we want in the end ...
+all: $(OBJDIR) $(ASMDIR) $(BINDIR) \
+     $(BINDBG) $(BINOPT) $(ASMDBG) $(ASMOPT)
 
 
-$(BINDBG): $(HDR) $(SRC)
-	mkdir -p $(BINDIR)
-	$(CC) $(CFDBG) $(CFARCH) -c $(INCLUDES) $(SRC)
-	$(LD) -o $@ $(OBJ) $(LB)
-	rm $(OBJ)	
+$(OBJDIR):
+	mkdir $@
 
 
-$(BINOPT): $(HDR) $(SRC)
-	mkdir -p $(BINDIR)
-	$(CC) $(CFOPT) $(CFARCH) -c $(INCLUDES) $(SRC)
-	$(LD) -o $@ $(OBJ) $(LB)
-	rm $(OBJ)
+$(ASMDIR):
+	mkdir $@
 
 
-$(ASMDBG): $(HDR) $(SRC)
-	mkdir -p $(ASMDIR)
-	$(CC) $(CFDBG) $(CFARCH) $(CFASM) -S $(INCLUDES) $(SRC)
-	mv $(MAIN).s $(word 1,$(ASMDBG))
-	mv $(UTIL).s $(word 2,$(ASMDBG))
+$(BINDIR):
+	mkdir $@
 
 
-$(ASMOPT): $(HDR) $(SRC)
-	mkdir -p $(ASMDIR)
-	$(CC) $(CFOPT) $(CFARCH) $(CFASM) -S $(INCLUDES) $(SRC)
-	mv $(MAIN).s $(word 1,$(ASMOPT))
-	mv $(UTIL).s $(word 2,$(ASMOPT))
+$(BINDBG): $(OBJDBG)
+	$(LD) -o $@ $(OBJDBG) $(LB)
+
+
+$(BINOPT): $(OBJOPT)
+	$(LD) -o $@ $(OBJOPT) $(LB)
+
+
+$(ASMDIR)/%_dbg.s: %.c $(HDR)
+	$(CC) $(CF) $(CFDBG) $(CFASM) $(INCLUDES) -S $< -o $@
+
+
+$(ASMDIR)/%_opt.s: %.c $(HDR)
+	$(CC) $(CF) $(CFARCH) $(CFOPT) $(CFASM) $(INCLUDES) -S $< -o $@
+
+
+$(OBJDIR)/%_dbg.o: %.c $(HDR)
+	$(CC) $(CF) $(CFDBG) $(CFASM) $(INCLUDES) -c $< -o $@
+
+
+$(OBJDIR)/%_opt.o: %.c $(HDR)
+	$(CC) $(CF) $(CFARCH) $(CFOPT) $(CFASM) $(INCLUDES) -c $< -o $@
 
 
 # clean up
 clean:
-	rm $(BINDBG) $(BINOPT) $(ASMDBG) $(ASMOPT)
-	rmdir $(BINDIR) $(ASMDIR)
+	rm $(BINDBG) $(BINOPT) \
+     $(ASMDBG) $(ASMOPT) \
+     $(OBJDBG) $(OBJOPT)
+	
+	rmdir $(OBJDIR) $(BINDIR) $(ASMDIR)
 

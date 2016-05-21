@@ -17,15 +17,14 @@ ASMDIR = ./asm
 
 # Files
 SRC    = $(SRCDIR)/unroll_1.c
-SRC   += $(SRCDIR)/unroll_2.c
 
 ASMDBG = $(subst $(SRCDIR),$(ASMDIR),$(SRC:.c=_dbg.s))
 ASMOPT = $(subst $(SRCDIR),$(ASMDIR),$(SRC:.c=_opt.s))
 
 
-# vpath variable for pattern rules to look in the
-# directories specified in vpath as well when searching
-# the dependency files.
+# vpath variable for pattern rules to look into the
+# directories specified in vpath as well when 
+# searching the dependency files.
 VPATH = $(SRCDIR)
 
 
@@ -41,7 +40,7 @@ $(ASMDIR):
 
 
 $(ASMDIR)/%_dbg.s: %.c
-	$(CC) $(CFARCH) $(CFDBG) $(CFASM) -S $< -o $@
+	$(CC) $(CFDBG) $(CFASM) -S $< -o $@
 
 
 $(ASMDIR)/%_opt.s: %.c
