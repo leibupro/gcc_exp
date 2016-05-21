@@ -133,11 +133,11 @@ $(ASMDIR)/%_opt.s: %.c $(HDR)
 
 
 $(OBJDIR)/%_dbg.o: %.c $(HDR)
-	$(CC) $(CF) $(CFDBG) $(CFASM) $(INCLUDES) -c $< -o $@
+	$(CC) $(CF) $(CFDBG) $(INCLUDES) -c $< -o $@
 
 
 $(OBJDIR)/%_opt.o: %.c $(HDR)
-	$(CC) $(CF) $(CFARCH) $(CFOPT) $(CFASM) $(INCLUDES) -c $< -o $@
+	$(CC) $(CF) $(CFARCH) $(CFOPT) $(INCLUDES) -c $< -o $@
 
 
 # clean up
