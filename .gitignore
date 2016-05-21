@@ -32,9 +32,8 @@
 *.dSYM/
 
 # Binaries
-bin_dbg
-bin_opt
+bin/
 
 # Assembler files
-*.s
+asm/
 
