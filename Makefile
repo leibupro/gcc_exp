@@ -100,8 +100,7 @@ VPATH = $(SRCDIR)
 
 
 # all files/directories we want in the end ...
-all: $(OBJDIR) $(ASMDIR) $(BINDIR) \
-     $(BINDBG) $(BINOPT) $(ASMDBG) $(ASMOPT)
+all: $(BINDBG) $(BINOPT) $(ASMDBG) $(ASMOPT)
 
 
 $(OBJDIR):
@@ -116,35 +115,31 @@ $(BINDIR):
 	mkdir $@
 
 
-$(BINDBG): $(OBJDBG)
+$(BINDBG): $(OBJDBG) $(BINDIR)
 	$(LD) -o $@ $(OBJDBG) $(LB)
 
 
-$(BINOPT): $(OBJOPT)
+$(BINOPT): $(OBJOPT) $(BINDIR)
 	$(LD) -o $@ $(OBJOPT) $(LB)
 
 
-$(ASMDIR)/%_dbg.s: %.c $(HDR)
+$(ASMDIR)/%_dbg.s: %.c $(HDR) $(ASMDIR)
 	$(CC) $(CF) $(CFDBG) $(CFASM) $(INCLUDES) -S $< -o $@
 
 
-$(ASMDIR)/%_opt.s: %.c $(HDR)
+$(ASMDIR)/%_opt.s: %.c $(HDR) $(ASMDIR)
 	$(CC) $(CF) $(CFARCH) $(CFOPT) $(CFASM) $(INCLUDES) -S $< -o $@
 
 
-$(OBJDIR)/%_dbg.o: %.c $(HDR)
+$(OBJDIR)/%_dbg.o: %.c $(HDR) $(OBJDIR)
 	$(CC) $(CF) $(CFDBG) $(INCLUDES) -c $< -o $@
 
 
-$(OBJDIR)/%_opt.o: %.c $(HDR)
+$(OBJDIR)/%_opt.o: %.c $(HDR) $(OBJDIR)
 	$(CC) $(CF) $(CFARCH) $(CFOPT) $(INCLUDES) -c $< -o $@
 
 
 # clean up
 clean:
-	rm $(BINDBG) $(BINOPT) \
-     $(ASMDBG) $(ASMOPT) \
-     $(OBJDBG) $(OBJOPT)
-	
-	rmdir $(OBJDIR) $(BINDIR) $(ASMDIR)
+	rm -r $(OBJDIR) $(BINDIR) $(ASMDIR)
 
