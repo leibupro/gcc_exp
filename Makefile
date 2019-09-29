@@ -22,10 +22,10 @@
 #                  verbose manner for both
 #                  optimized and debugging
 #                  compiled sources.
-#    
+#
 #
 #   Remarks:       -
-# 
+#
 #
 #   Author:        P. Leibundgut <leiu@zhaw.ch>
 #                                <pl@vqe.ch>
@@ -141,5 +141,5 @@ $(OBJDIR)/%_opt.o: %.c $(HDR) $(OBJDIR)
 
 # clean up
 clean:
-	rm -r $(OBJDIR) $(BINDIR) $(ASMDIR)
+	-rm -rf $(OBJDIR) $(BINDIR) $(ASMDIR)
 
